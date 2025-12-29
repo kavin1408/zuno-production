@@ -8,6 +8,7 @@ from sqlalchemy.orm import sessionmaker
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Improved database selection logic
+print(f"DEBUG: Available Environment Keys: {list(os.environ.keys())}")
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL is not set in the environment. Production requires a valid connection string.")
 
