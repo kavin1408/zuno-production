@@ -15,7 +15,8 @@ from fastapi.middleware.cors import CORSMiddleware
 # Create DB Tables
 Base.metadata.create_all(bind=engine)
 
-# Production build trigger: 3
+# Production build trigger: 4
+print("--- STARTING ZUNO BACKEND ---")
 app = FastAPI(title="Zuno Backend")
 
 # CORS configuration
