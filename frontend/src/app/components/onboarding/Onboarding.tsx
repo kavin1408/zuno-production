@@ -112,7 +112,7 @@ export function Onboarding() {
             <div className="space-y-6">
               <div>
                 <h2 className="text-3xl font-medium text-white mb-3">
-                  What do you want to master? (v3)
+                  What do you want to master? (v4)
                 </h2>
                 <p className="text-gray-400">
                   Choose the subjects or skills you're committed to learning. You can add multiple.
@@ -156,7 +156,7 @@ export function Onboarding() {
               {/* ... step 2 content ... */}
               <div>
                 <h2 className="text-3xl font-medium text-white mb-3">
-                  How much time can you commit?
+                  How much time can you commit? (v4)
                 </h2>
                 <p className="text-gray-400">
                   Be realistic. Consistency matters more than intensity.
@@ -210,7 +210,7 @@ export function Onboarding() {
             <div className="space-y-6">
               <div>
                 <h2 className="text-3xl font-medium text-white mb-3">
-                  You're all set!
+                  You're all set! (v4)
                 </h2>
                 <p className="text-gray-400 mb-6">
                   Zuno has created your personalized learning paths.
