@@ -228,6 +228,22 @@ def get_daily_plan(user_id: str = Depends(get_current_user_id), db: Session = De
             "is_completed": task.is_completed
         })
         
+    if not results:
+        # EMERGENCY BYPASS: If no tasks could be created/found (e.g. DB error), return an in-memory task
+        # This prevents the "No Learning Paths" redirect loop.
+        results.append({
+            "id": 0,
+            "goal_id": 0,
+            "subject": "System Check",
+            "level": "Diagnostic",
+            "goal_description": "Emergency Dashboard Access",
+            "topic": "System Diagnosis",
+            "resource_link": "https://zuno.app",
+            "task_description": "If you see this, the system failed to save tasks to the database. \n\nPossible Reason: Database write error or Schema mismatch.\n\nPlease attempt to 'Complete' this task to test connection.",
+            "date": today,
+            "is_completed": False
+        })
+
     return results
 
 @app.post("/submit-task")
