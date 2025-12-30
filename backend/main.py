@@ -27,7 +27,7 @@ ALLOWED_ORIGINS = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # For production, you'd specify ALLOWED_ORIGINS
+    allow_origins=ALLOWED_ORIGINS, # RESTRICTED FOR PRODUCTION
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
