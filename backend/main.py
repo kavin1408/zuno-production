@@ -22,7 +22,8 @@ app = FastAPI(title="Zuno Backend")
 # CORS configuration
 ALLOWED_ORIGINS = [
     "http://localhost:5173", # Local dev
-    "https://zuno-mentor.vercel.app", # Replace with actual prod domain if known
+    "https://zuno-production.vercel.app", # Actual Vercel URL
+    "https://zuno-mentor.vercel.app", # Legacy/Alternative
 ]
 
 app.add_middleware(

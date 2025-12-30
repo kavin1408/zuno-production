@@ -71,9 +71,9 @@ export function Onboarding() {
         });
         setOnboardingResult(result);
         setStep(3);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Onboarding failed", error);
-        alert("Failed to save goals. Please try again.");
+        alert(`Failed to save goals: ${error.message}`);
       } finally {
         setLoading(false);
       }
