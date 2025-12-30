@@ -177,8 +177,13 @@ def get_daily_plan(user_id: str = Depends(get_current_user_id), db: Session = De
                 )
                 
                 if not ai_response_str:
-                    # Skip if AI fails for one goal, but maybe log it
-                    continue
+                    # FALLBACK TASK logic if AI fails (e.g. invalid API Key)
+                    print(f"AI failed for goal {goal.id}, using fallback.")
+                    ai_response_str = json.dumps({
+                        "topic": "Fundamentals Review (AI Unavailable)",
+                        "description": "The AI mentor is currently offline (check API Key). For today, review the core fundamentals of your subject. Focus on documentation and basic concepts.",
+                        "resource_link": "https://www.google.com/search?q=" + goal.subject.replace(" ", "+") + "+fundamentals"
+                    })
                     
                 try:
                     task_data = json.loads(ai_response_str)
