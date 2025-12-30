@@ -112,7 +112,7 @@ export function Onboarding() {
             <div className="space-y-6">
               <div>
                 <h2 className="text-3xl font-medium text-white mb-3">
-                  What do you want to master?
+                  What do you want to master? (v2)
                 </h2>
                 <p className="text-gray-400">
                   Choose the subjects or skills you're committed to learning. You can add multiple.
