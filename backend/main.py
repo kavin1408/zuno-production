@@ -13,7 +13,14 @@ from datetime import date
 from fastapi.middleware.cors import CORSMiddleware
 
 # Create DB Tables
-Base.metadata.create_all(bind=engine)
+# Create DB Tables - WRAPPED TO PREVENT CRASH
+db_startup_error = None
+try:
+    Base.metadata.create_all(bind=engine)
+    print("Database tables created/verified successfully.")
+except Exception as e:
+    db_startup_error = str(e)
+    print(f"CRITICAL DATABASE ERROR: {e}")
 
 # Production build trigger: 4
 print("--- STARTING ZUNO BACKEND ---")
@@ -53,11 +60,22 @@ class ChatRequest(BaseModel):
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "message": "Zuno Backend is production ready"}
+    status = "ok" if not db_startup_error else "degraded"
+    return {
+        "status": status, 
+        "message": "Zuno Backend is production ready",
+        "db_error": db_startup_error
+    }
 
 @app.get("/")
 def root():
-    return {"message": "Welcome to Zuno API. Visit /health for status."}
+    status_msg = "Operational" if not db_startup_error else "Database Error"
+    return {
+        "message": "Welcome to Zuno API.", 
+        "status": status_msg,
+        "db_error_details": db_startup_error,
+        "instruction": "If db_error is present, check Railway Variables."
+    }
 
 @app.post("/onboarding")
 def onboarding(req: OnboardingRequest, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
