@@ -12,6 +12,7 @@ class User(Base):
 
     goals = relationship("Goal", back_populates="user")
     tasks = relationship("DailyTask", back_populates="user")
+    roadmaps = relationship("Roadmap", back_populates="user")
 
 class Goal(Base):
     __tablename__ = "goals"
@@ -48,6 +49,8 @@ class DailyTask(Base):
     user = relationship("User", back_populates="tasks")
     goal = relationship("Goal", back_populates="tasks")
     submission = relationship("Submission", uselist=False, back_populates="task")
+    roadmap_task_id = Column(Integer, ForeignKey("roadmap_tasks.id"), nullable=True)
+    roadmap_task = relationship("RoadmapTask", back_populates="daily_tasks")
 
 class Submission(Base):
     __tablename__ = "submissions"
@@ -61,3 +64,31 @@ class Submission(Base):
     submitted_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     task = relationship("DailyTask", back_populates="submission")
+
+class Roadmap(Base):
+    __tablename__ = "roadmaps"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    goal = Column(String, nullable=False)
+    total_hours = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    user = relationship("User", back_populates="roadmaps")
+    tasks = relationship("RoadmapTask", back_populates="roadmap")
+
+class RoadmapTask(Base):
+    __tablename__ = "roadmap_tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    roadmap_id = Column(Integer, ForeignKey("roadmaps.id"), nullable=False)
+    phase = Column(String, nullable=False)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    estimated_time_hours = Column(Integer, nullable=True)
+    status = Column(String, default="pending") 
+    order_index = Column(Integer, default=0)
+    completed_at = Column(DateTime, nullable=True)
+
+    roadmap = relationship("Roadmap", back_populates="tasks")
+    daily_tasks = relationship("DailyTask", back_populates="roadmap_task")
