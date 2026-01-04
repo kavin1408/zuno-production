@@ -7,6 +7,7 @@ from models import User, Goal, DailyTask, Submission, Roadmap, RoadmapTask
 from auth import get_current_user_id
 import ai_service
 import json
+import os
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import date
@@ -27,17 +28,17 @@ except Exception as e:
 print("--- STARTING ZUNO BACKEND ---")
 app = FastAPI(title="Zuno Backend")
 
-# CORS configuration
-# CORS configuration
-# We use regex to allow all vercel subdomains and local dev safely
-ALLOWED_ORIGIN_REGEX = r"https://.*\.vercel\.app|http://localhost:\d+"
+# CORS configuration - TEMPORARY: Allow all origins to fix blocking
+# TODO: Tighten this once deployment is confirmed working
+print("CORS Configuration: Allowing ALL origins (temporary for debugging)")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=ALLOWED_ORIGIN_REGEX,
-    allow_credentials=True,
+    allow_origins=["*"],  # Allow all origins temporarily
+    allow_credentials=False,  # Must be False when using allow_origins=["*"]
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # --- Pydantic Models ---
