@@ -225,7 +225,10 @@ def generate_daily_task_content(subject, exam, level, recent_topics=None, time_m
         return json.dumps(data) if data else None
         
     except Exception as e:
-        print(f"Error in daily task generation flow: {e}")
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"ERROR in daily task generation flow: {e}")
+        print(f"Full traceback:\n{error_details}")
         return None
 
 def evaluate_submission_content(task_description, user_text, level="Beginner"):
