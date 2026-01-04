@@ -3,6 +3,35 @@ from sqlalchemy.orm import relationship
 from database import Base
 import datetime
 
+# Define Roadmap and RoadmapTask FIRST to avoid forward reference issues
+class Roadmap(Base):
+    __tablename__ = "roadmaps"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    goal = Column(String, nullable=False)
+    total_hours = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    user = relationship("User", back_populates="roadmaps")
+    tasks = relationship("RoadmapTask", back_populates="roadmap")
+
+class RoadmapTask(Base):
+    __tablename__ = "roadmap_tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    roadmap_id = Column(Integer, ForeignKey("roadmaps.id"), nullable=False)
+    phase = Column(String, nullable=False)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    estimated_time_hours = Column(Integer, nullable=True)
+    status = Column(String, default="pending") 
+    order_index = Column(Integer, default=0)
+    completed_at = Column(DateTime, nullable=True)
+
+    roadmap = relationship("Roadmap", back_populates="tasks")
+    daily_tasks = relationship("DailyTask", back_populates="roadmap_task")
+
 class User(Base):
     __tablename__ = "users"
 
@@ -45,11 +74,11 @@ class DailyTask(Base):
     resource_link = Column(String, nullable=True)
     date = Column(Date, default=datetime.date.today, nullable=False)
     is_completed = Column(Boolean, default=False)
+    roadmap_task_id = Column(Integer, ForeignKey("roadmap_tasks.id"), nullable=True)
 
     user = relationship("User", back_populates="tasks")
     goal = relationship("Goal", back_populates="tasks")
     submission = relationship("Submission", uselist=False, back_populates="task")
-    roadmap_task_id = Column(Integer, ForeignKey("roadmap_tasks.id"), nullable=True)
     roadmap_task = relationship("RoadmapTask", back_populates="daily_tasks")
 
 class Submission(Base):
@@ -64,31 +93,3 @@ class Submission(Base):
     submitted_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     task = relationship("DailyTask", back_populates="submission")
-
-class Roadmap(Base):
-    __tablename__ = "roadmaps"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String, ForeignKey("users.id"), nullable=False)
-    goal = Column(String, nullable=False)
-    total_hours = Column(Integer, nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
-
-    user = relationship("User", back_populates="roadmaps")
-    tasks = relationship("RoadmapTask", back_populates="roadmap")
-
-class RoadmapTask(Base):
-    __tablename__ = "roadmap_tasks"
-
-    id = Column(Integer, primary_key=True, index=True)
-    roadmap_id = Column(Integer, ForeignKey("roadmaps.id"), nullable=False)
-    phase = Column(String, nullable=False)
-    title = Column(String, nullable=False)
-    description = Column(Text, nullable=True)
-    estimated_time_hours = Column(Integer, nullable=True)
-    status = Column(String, default="pending") 
-    order_index = Column(Integer, default=0)
-    completed_at = Column(DateTime, nullable=True)
-
-    roadmap = relationship("Roadmap", back_populates="tasks")
-    daily_tasks = relationship("DailyTask", back_populates="roadmap_task")
