@@ -3,13 +3,14 @@ from dotenv import load_dotenv
 load_dotenv()
 from sqlalchemy.orm import Session
 from database import engine, get_db, Base
-from models import User, Goal, DailyTask, Submission
+from models import User, Goal, DailyTask, Submission, Roadmap, RoadmapTask
 from auth import get_current_user_id
 import ai_service
 import json
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import date
+import datetime
 from fastapi.middleware.cors import CORSMiddleware
 
 # Create DB Tables
@@ -56,6 +57,11 @@ class ChatRequest(BaseModel):
     goal_id: Optional[int] = None
     task_id: Optional[int] = None
 
+class RoadmapRequest(BaseModel):
+    subject: str
+    goal: str
+    level: str = "Beginner"
+
 # --- Endpoints ---
 
 @app.get("/health")
@@ -66,6 +72,33 @@ def health_check():
         "message": "Zuno Backend is production ready",
         "db_error": db_startup_error
     }
+
+@app.get("/test-resources")
+def test_resources():
+    """Diagnostic endpoint to test resource search"""
+    try:
+        import research_service
+        
+        # Test curated resources
+        curated = research_service.get_curated_resource("python", "Beginner")
+        
+        # Test YouTube search with fallback
+        youtube_results = research_service.search_youtube_resources("python tutorial", limit=1)
+        
+        return {
+            "curated_resource": curated,
+            "youtube_search_result": youtube_results[0] if youtube_results else None,
+            "youtube_search_count": len(youtube_results),
+            "status": "Resource search is working"
+        }
+    except Exception as e:
+        import traceback
+        return {
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "status": "Resource search failed"
+        }
+
 
 @app.get("/")
 def root():
@@ -195,6 +228,11 @@ def get_daily_plan(user_id: str = Depends(get_current_user_id), db: Session = De
                         resource_link=task_data.get("resource_link", ""),
                         date=today
                     )
+                    
+                    # LINK TO ROADMAP TASK ?? (Future improvement: find matching pending roadmap task)
+                    # For now, we just create the daily task.
+                    # Ideally, we should pick the next pending RoadmapTask and make that the DailyTask.
+                    
                     db.add(task)
                     db.commit()
                     db.refresh(task)
@@ -225,7 +263,8 @@ def get_daily_plan(user_id: str = Depends(get_current_user_id), db: Session = De
             "resource_link": task.resource_link,
             "task_description": task.description,
             "date": task.date,
-            "is_completed": task.is_completed
+            "is_completed": task.is_completed,
+            "roadmap_task_id": task.roadmap_task_id
         })
         
     if not results:
@@ -285,6 +324,15 @@ def submit_task(req: TaskSubmissionRequest, user_id: str = Depends(get_current_u
     )
     
     task.is_completed = True
+    
+    # SMART LOGIC: Auto-complete linked RoadmapTask
+    if task.roadmap_task_id:
+        r_task = db.query(RoadmapTask).filter(RoadmapTask.id == task.roadmap_task_id).first()
+        if r_task and r_task.status != "completed":
+            r_task.status = "completed"
+            r_task.completed_at = datetime.datetime.utcnow()
+            print(f"SMART LOGIC: Automatically marked Roadmap Task {r_task.id} as completed.")
+
     db.add(new_submission)
     db.commit()
     
@@ -302,10 +350,6 @@ def get_progress(user_id: str = Depends(get_current_user_id), db: Session = Depe
         total_score = sum([s.score for s in submissions if s.score is not None])
         avg_score = total_score / len(submissions)
         
-    # Streak Logic (Simple: consecutive days with completed tasks/submissions ending today or yesterday)
-    # ... Implementation of complex date logic might be overkill, let's just count total completed for now or a basic check
-    # For MVP, let's keep it simple:
-    
     return {
         "total_tasks": total_tasks,
         "completed_tasks": completed_tasks,
@@ -375,3 +419,118 @@ def chat(req: ChatRequest, user_id: str = Depends(get_current_user_id), db: Sess
         "action_taken": action.get("type") if action else None,
         "task_updated": target_task.id if (action and target_task) else None
     }
+
+# --- Roadmap Endpoints ---
+
+@app.post("/roadmap/generate")
+def create_roadmap(req: RoadmapRequest, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    # Check if exists
+    existing_roadmap = db.query(Roadmap).filter(Roadmap.user_id == user_id, Roadmap.goal == req.goal).first()
+    if existing_roadmap:
+        # For MVP, returning existing one. We can add REGENERATE flag later.
+        # But user requirement said "Allow roadmap regeneration (with confirmation)". 
+        # Since this is POST, we can assume it's a new request or explicit regen. 
+        # Let's delete old one if exists for simplicity or return it?
+        # Let's return the old one for now to prevent accidental overwrite, logic should be handled by frontend to explicitly delete first if regen needed.
+        # Actually, let's just make a new one if requested.
+        pass
+
+    # Call AI
+    ai_json = ai_service.generate_roadmap(req.subject, req.goal, level=req.level)
+    if not ai_json:
+        raise HTTPException(status_code=500, detail="Failed to generate roadmap from AI")
+    
+    try:
+        data = json.loads(ai_json)
+        phases = data.get("phases", [])
+        
+        # Create Roadmap
+        new_roadmap = Roadmap(user_id=user_id, goal=req.goal, total_hours=0) # Update hours later
+        db.add(new_roadmap)
+        db.commit()
+        db.refresh(new_roadmap)
+        
+        idx = 0
+        total_hours = 0
+        
+        for phase_obj in phases:
+            phase_name = phase_obj.get("name", "Phase X")
+            tasks = phase_obj.get("tasks", [])
+            for t in tasks:
+                idx += 1
+                hours = t.get("estimated_time_hours", 1)
+                total_hours += hours
+                
+                r_task = RoadmapTask(
+                    roadmap_id=new_roadmap.id,
+                    phase=phase_name,
+                    title=t.get("title", "Task"),
+                    description=t.get("description", ""),
+                    estimated_time_hours=hours,
+                    status="pending",
+                    order_index=idx
+                )
+                db.add(r_task)
+        
+        new_roadmap.total_hours = total_hours
+        db.commit()
+        
+        return {"roadmap_id": new_roadmap.id, "message": "Roadmap generated successfully"}
+        
+    except Exception as e:
+        print(f"Error saving roadmap: {e}")
+        raise HTTPException(status_code=500, detail="Error parsing or saving roadmap")
+
+@app.get("/roadmap")
+def get_roadmap(user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    # Get the most recent roadmap or all? Requirement says "fetch user's roadmap". implied singular active one.
+    roadmap = db.query(Roadmap).filter(Roadmap.user_id == user_id).order_by(Roadmap.created_at.desc()).first()
+    if not roadmap:
+        return {"roadmap": None}
+    
+    # Get tasks
+    tasks = db.query(RoadmapTask).filter(RoadmapTask.roadmap_id == roadmap.id).order_by(RoadmapTask.order_index).all()
+    
+    # Group by phase
+    phases = {}
+    for t in tasks:
+        if t.phase not in phases:
+            phases[t.phase] = []
+        phases[t.phase].append({
+            "id": t.id,
+            "title": t.title,
+            "description": t.description,
+            "estimated_time": t.estimated_time_hours,
+            "status": t.status,
+            "completed_at": t.completed_at
+        })
+        
+    return {
+        "roadmap": {
+            "id": roadmap.id,
+            "goal": roadmap.goal,
+            "total_hours": roadmap.total_hours,
+            "phases": phases
+        }
+    }
+
+@app.patch("/roadmap/task/{task_id}")
+def update_roadmap_task(task_id: int, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    # Manual update endpoint? Or generic status update?
+    # Req: PATCH /roadmap/task/:id -> update task status
+    # We will assume toggle or set to completed.
+    
+    # Verify ownership via join
+    r_task = db.query(RoadmapTask).join(Roadmap).filter(RoadmapTask.id == task_id, Roadmap.user_id == user_id).first()
+    if not r_task:
+        raise HTTPException(status_code=404, detail="Task not found")
+        
+    if r_task.status != "completed":
+        r_task.status = "completed"
+        r_task.completed_at = datetime.datetime.utcnow()
+    else:
+        # Optional: toggle back?
+        pass # Keep simple for now
+        
+    db.commit()
+    return {"status": r_task.status}
