@@ -168,16 +168,27 @@ def generate_daily_task_content(subject, exam, level, recent_topics=None, time_m
         search_query = query_data.get("search_query", f"{subject} {exam} tutorial")
         
         # Step 2: Research Resources
-        resources = research_service.search_youtube_resources(search_query, limit=3)
+        # Try curated resources first for reliability
+        curated_resource = research_service.get_curated_resource(subject, level)
         
-        if not resources:
-            resource_link = f"https://www.youtube.com/results?search_query={search_query.replace(' ', '+')}"
-            resource_context = "No specific video found, providing search results."
+        if curated_resource:
+            # Use curated resource
+            resource_link = curated_resource['url']
+            resource_context = f"Curated video: '{curated_resource['title']}' from {curated_resource['uploader']}."
+            print(f"Using curated resource for {subject} at {level} level")
         else:
-            # We pick the top one (already sorted by popularity)
-            best_res = resources[0]
-            resource_link = best_res['url']
-            resource_context = f"Top video: '{best_res['title']}' with {best_res['views']} views from {best_res['uploader']}."
+            # Fall back to YouTube search
+            resources = research_service.search_youtube_resources(search_query, limit=3)
+            
+            if not resources:
+                resource_link = f"https://www.youtube.com/results?search_query={search_query.replace(' ', '+')}"
+                resource_context = "No specific video found, providing search results."
+            else:
+                # We pick the top one (already sorted by popularity)
+                best_res = resources[0]
+                resource_link = best_res['url']
+                resource_context = f"Top video: '{best_res['title']}' with {best_res['views']} views from {best_res['uploader']}."
+
 
         # Step 3: Generate final task description
         learning_stage = "Starting from fundamentals" if is_starting or level == "Beginner" else "Building on previous knowledge"
@@ -233,6 +244,7 @@ def evaluate_submission_content(task_description, user_text, level="Beginner"):
     1. Relevance: Did they improved address the task?
     2. Effort: Does the submission show genuine effort?
     3. Level-Appropriateness:
+    
        - Beginner: Be encouraging, praise understanding of basics.
        - Intermediate: Look for practical application and correct usage.
        - Advanced: Be strict, look for optimization and best practices.
@@ -317,3 +329,51 @@ def answer_question(user_question, goal_context=None, task_context=None):
     
     response = call_openrouter(messages)
     return extract_json(response)
+
+def generate_roadmap(subject, goal, duration_weeks=4, level="Beginner"):
+    """
+    Generates a structured learning roadmap with phases and tasks.
+    Returns JSON: { "phases": [ { "name": "Phase 1", "tasks": [ ... ] } ] }
+    """
+    prompt = f"""
+    Create a detailed {{duration_weeks}}-week learning roadmap for '{{subject}}' to achieve '{{goal}}'.
+    Level: {{level}}
+    
+    Structure the roadmap into Phases (e.g., Fundamentals, Deep Dive, Projects, Mastery).
+    Each phase should have a list of specific, actionable tasks.
+    
+    For each task, provide:
+    - title: Short title (e.g., "Learn Variables")
+    - description: One sentence description.
+    - estimated_time_hours: Rough estimate (e.g., 2).
+    
+    Respond in pure JSON format:
+    {{
+      "phases": [
+        {{
+          "name": "Phase 1: Foundations",
+          "tasks": [
+            {{
+              "title": "Topic Name",
+              "description": "What to learn.",
+              "estimated_time_hours": 2
+            }}
+          ]
+        }}
+      ]
+    }}
+    """
+    
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": prompt}
+    ]
+    
+    response = call_openrouter(messages)
+    data = extract_json(response)
+    
+    # Normalizing keys if AI hallucinates
+    if data and "classes" in data and "phases" not in data:
+         data["phases"] = data["classes"]
+         
+    return json.dumps(data) if data else None
