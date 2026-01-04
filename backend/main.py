@@ -28,14 +28,16 @@ except Exception as e:
 print("--- STARTING ZUNO BACKEND ---")
 app = FastAPI(title="Zuno Backend")
 
-# CORS configuration - TEMPORARY: Allow all origins to fix blocking
-# TODO: Tighten this once deployment is confirmed working
-print("CORS Configuration: Allowing ALL origins (temporary for debugging)")
+# CORS configuration - Robust for Vercel + Credentials
+# We use regex to allow all vercel subdomains and local dev safely
+ALLOWED_ORIGIN_REGEX = r"https://.*\.vercel\.app|http://(localhost|127\.0\.0\.1):\d+"
+
+print(f"CORS Configuration: Using regex {ALLOWED_ORIGIN_REGEX}")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins temporarily
-    allow_credentials=False,  # Must be False when using allow_origins=["*"]
+    allow_origin_regex=ALLOWED_ORIGIN_REGEX,
+    allow_credentials=True, # Critical for Authorization headers
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
