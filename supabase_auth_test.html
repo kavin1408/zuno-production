@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Auth Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1e;
+            color: white;
+        }
+
+        .container {
+            background: #25252a;
+            padding: 30px;
+            border-radius: 10px;
+            border: 1px solid #35353a;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background: #1a1a1e;
+            border: 1px solid #35353a;
+            color: white;
+            border-radius: 5px;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 10px 5px;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #4338ca;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #1a1a1e;
+            border-radius: 5px;
+            border: 1px solid #35353a;
+        }
+
+        .success {
+            color: #10b981;
+        }
+
+        .error {
+            color: #ef4444;
+        }
+
+        .info {
+            color: #3b82f6;
+        }
+
+        pre {
+            background: #0a0a0e;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Supabase Authentication Test</h1>
+
+        <div>
+            <h3>Configuration</h3>
+            <input type="text" id="supabaseUrl" placeholder="Supabase URL"
+                value="https://dcjsmglxckhllafocexe.supabase.co">
+            <input type="text" id="supabaseKey" placeholder="Supabase Anon Key"
+                value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjanNtZ2x4Y2tobGxhZm9jZXhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYwNjIwODksImV4cCI6MjA4MTYzODA4OX0.WS3PLu9JN2SxtJr_TK2oIdfwdHuKnkP3rVDUzM7zoIA">
+            <button onclick="initSupabase()">Initialize Supabase</button>
+        </div>
+
+        <div style="margin-top: 30px;">
+            <h3>Test Sign Up</h3>
+            <input type="email" id="signupEmail" placeholder="Email" value="test@example.com">
+            <input type="password" id="signupPassword" placeholder="Password" value="TestPassword123">
+            <button onclick="testSignUp()">Sign Up</button>
+        </div>
+
+        <div style="margin-top: 30px;">
+            <h3>Test Sign In</h3>
+            <input type="email" id="loginEmail" placeholder="Email" value="test@example.com">
+            <input type="password" id="loginPassword" placeholder="Password" value="TestPassword123">
+            <button onclick="testSignIn()">Sign In</button>
+        </div>
+
+        <div style="margin-top: 30px;">
+            <button onclick="checkSession()">Check Current Session</button>
+            <button onclick="signOut()">Sign Out</button>
+        </div>
+
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        let supabase;
+
+        function initSupabase() {
+            const url = document.getElementById('supabaseUrl').value;
+            const key = document.getElementById('supabaseKey').value;
+
+            try {
+                supabase = window.supabase.createClient(url, key);
+                showResult('success', 'Supabase client initialized successfully!', { url, keyLength: key.length });
+            } catch (error) {
+                showResult('error', 'Failed to initialize Supabase', error);
+            }
+        }
+
+        async function testSignUp() {
+            if (!supabase) {
+                showResult('error', 'Please initialize Supabase first');
+                return;
+            }
+
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+
+            showResult('info', 'Attempting to sign up...', { email });
+
+            try {
+                const { data, error } = await supabase.auth.signUp({
+                    email,
+                    password,
+                });
+
+                if (error) {
+                    showResult('error', 'Sign up failed', error);
+                } else {
+                    showResult('success', 'Sign up successful!', data);
+                }
+            } catch (error) {
+                showResult('error', 'Sign up exception', error);
+            }
+        }
+
+        async function testSignIn() {
+            if (!supabase) {
+                showResult('error', 'Please initialize Supabase first');
+                return;
+            }
+
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            showResult('info', 'Attempting to sign in...', { email });
+
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password,
+                });
+
+                if (error) {
+                    showResult('error', 'Sign in failed', error);
+                } else {
+                    showResult('success', 'Sign in successful!', data);
+                }
+            } catch (error) {
+                showResult('error', 'Sign in exception', error);
+            }
+        }
+
+        async function checkSession() {
+            if (!supabase) {
+                showResult('error', 'Please initialize Supabase first');
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase.auth.getSession();
+
+                if (error) {
+                    showResult('error', 'Failed to get session', error);
+                } else if (data.session) {
+                    showResult('success', 'Active session found', data);
+                } else {
+                    showResult('info', 'No active session', data);
+                }
+            } catch (error) {
+                showResult('error', 'Session check exception', error);
+            }
+        }
+
+        async function signOut() {
+            if (!supabase) {
+                showResult('error', 'Please initialize Supabase first');
+                return;
+            }
+
+            try {
+                const { error } = await supabase.auth.signOut();
+
+                if (error) {
+                    showResult('error', 'Sign out failed', error);
+                } else {
+                    showResult('success', 'Signed out successfully');
+                }
+            } catch (error) {
+                showResult('error', 'Sign out exception', error);
+            }
+        }
+
+        function showResult(type, message, data) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+
+            let html = `<div class="${type}"><strong>${type.toUpperCase()}:</strong> ${message}</div>`;
+
+            if (data) {
+                html += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            }
+
+            resultDiv.innerHTML = html;
+        }
+
+        // Auto-initialize on load
+        window.onload = () => {
+            initSupabase();
+        };
+    </script>
+</body>
+
+</html>

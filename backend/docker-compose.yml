@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: zuno-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+    env_file:
+      - .env
+    volumes:
+      # Mount source code for hot reload in development
+      - ./:/app
+      # Prevent overwriting node_modules and __pycache__
+      - /app/__pycache__
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Optional: PostgreSQL for testing production setup locally
+  # Uncomment if you want to test with PostgreSQL instead of SQLite
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: zuno-postgres
+  #   environment:
+  #     POSTGRES_USER: zuno
+  #     POSTGRES_PASSWORD: zuno_dev_password
+  #     POSTGRES_DB: zuno_db
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   restart: unless-stopped
+
+# volumes:
+#   postgres_data:

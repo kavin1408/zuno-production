@@ -1,0 +1,54 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment files
+.env
+.env.local
+
+# Test files
+test_*.py
+*_test.py
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+!DOCKER.md
+
+# Logs
+*.log
+debug_output.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Migration scripts (optional - include if needed)
+migrate_*.py
+check_db.py
+clear_database.py
+init_db.py
