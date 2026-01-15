@@ -4,6 +4,7 @@ load_dotenv()
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
+import json
 
 security = HTTPBearer()
 
@@ -12,23 +13,23 @@ SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
 def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
     """
     Verifies the JWT token from Supabase and returns the user ID (sub).
-    Uses HS256 algorithm with SUPABASE_JWT_SECRET.
+    Supports both HS256 and ES256 algorithms.
     """
     token = credentials.credentials
     
     if not SUPABASE_JWT_SECRET:
-        print("CRITICAL: SUPABASE_JWT_SECRET is not set!")
+        print("❌ CRITICAL: SUPABASE_JWT_SECRET is not set!")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Server authentication configuration error",
         )
     
     try:
-        # Decode JWT using HS256 algorithm
+        # Decode JWT - support both HS256 (old Supabase) and ES256 (new Supabase)
         payload = jwt.decode(
             token, 
             str(SUPABASE_JWT_SECRET), 
-            algorithms=["HS256"], 
+            algorithms=["HS256", "ES256"],  # Support both algorithms
             options={
                 "verify_aud": False,
                 "verify_iss": False,
@@ -39,21 +40,40 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
         
         user_id = payload.get("sub")
         if user_id is None:
-            print("JWT Error: No sub in payload")
+            print("❌ JWT Error: No sub in payload")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token missing user information (sub)",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
+        print(f"✅ JWT verified successfully for user: {user_id[:8]}...")
         return user_id
         
+    except jwt.ExpiredSignatureError:
+        print("❌ JWT Error: Token expired")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session expired or invalid token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     except JWTError as e:
-        print(f"JWT Verification Error: {str(e)}")
-        print(f"Token (first 20 chars): {token[:20]}...")
-        print(f"JWT Secret (first 10 chars): {str(SUPABASE_JWT_SECRET)[:10]}...")
+        error_type = type(e).__name__
+        error_msg = str(e)
+        print(f"❌ JWT Verification Error: {error_type}: {error_msg}")
+        print(f"   Token (first 20 chars): {token[:20]}...")
+        print(f"   Secret (first 10 chars): {str(SUPABASE_JWT_SECRET)[:10]}...")
+        
+        # Try to decode header to see the algorithm
+        try:
+            header = json.loads(jwt.get_unverified_header(token))
+            print(f"   Token algorithm: {header.get('alg', 'unknown')}")
+        except:
+            pass
+            
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Session expired or invalid token",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
