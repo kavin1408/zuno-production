@@ -35,7 +35,7 @@ def call_openrouter(messages, model="meta-llama/llama-3.1-70b-instruct"):
     }
     
     try:
-        response = requests.post(OPENROUTER_URL, headers=headers, json=data, timeout=30)
+        response = requests.post(OPENROUTER_URL, headers=headers, json=data, timeout=120)
         response.raise_for_status()
         result = response.json()
         ai_response = result['choices'][0]['message']['content']

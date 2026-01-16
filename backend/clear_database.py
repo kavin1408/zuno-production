@@ -22,23 +22,39 @@ def clear_all_data():
             conn.commit()
             print(f"✓ Deleted {result.rowcount} submissions")
             
-            # 2. Delete daily_tasks (depends on users and goals)
+            # 2. Delete task_resources (depends on daily_tasks and roadmap_tasks)
+            result = conn.execute(text("DELETE FROM task_resources"))
+            conn.commit()
+            print(f"✓ Deleted {result.rowcount} task resources")
+            
+            # 3. Delete daily_tasks (depends on users, goals, and roadmap_tasks)
             result = conn.execute(text("DELETE FROM daily_tasks"))
             conn.commit()
             print(f"✓ Deleted {result.rowcount} daily tasks")
             
-            # 3. Delete goals (depends on users)
+            # 4. Delete roadmap_tasks (depends on roadmaps)
+            result = conn.execute(text("DELETE FROM roadmap_tasks"))
+            conn.commit()
+            print(f"✓ Deleted {result.rowcount} roadmap tasks")
+            
+            # 5. Delete roadmaps (depends on users and goals)
+            result = conn.execute(text("DELETE FROM roadmaps"))
+            conn.commit()
+            print(f"✓ Deleted {result.rowcount} roadmaps")
+            
+            # 6. Delete goals (depends on users)
             result = conn.execute(text("DELETE FROM goals"))
             conn.commit()
             print(f"✓ Deleted {result.rowcount} goals")
             
-            # 4. Delete users (no dependencies)
+            # 7. Delete users (no dependencies)
             result = conn.execute(text("DELETE FROM users"))
             conn.commit()
             print(f"✓ Deleted {result.rowcount} users")
             
             print("\n✅ Database cleared successfully! All data has been deleted.")
             print("You can now start fresh with new data.")
+            
             
     except Exception as e:
         print(f"\n❌ Error clearing database: {e}")
@@ -49,7 +65,14 @@ def clear_all_data():
 if __name__ == "__main__":
     # Ask for confirmation
     print("⚠️  WARNING: This will delete ALL data from the database!")
-    print("Tables to be cleared: users, goals, daily_tasks, submissions")
+    print("Tables to be cleared:")
+    print("  - users")
+    print("  - goals")
+    print("  - roadmaps")
+    print("  - roadmap_tasks")
+    print("  - daily_tasks")
+    print("  - task_resources")
+    print("  - submissions")
     response = input("\nAre you sure you want to continue? (yes/no): ")
     
     if response.lower() in ['yes', 'y']:

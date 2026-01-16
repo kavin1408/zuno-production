@@ -1,0 +1,61 @@
+# ZUNO GitHub Setup - Quick Commands
+# Copy and paste these commands one section at a time
+
+# ============================================
+# STEP 1: Configure Git User (REQUIRED - Do this first!)
+# ============================================
+# Replace "Your Name" and "your.email@example.com" with your actual details
+
+git config --global user.name "Your Name"
+git config --global user.email "your.email@example.com"
+
+# ============================================
+# STEP 2: Create Initial Commit
+# ============================================
+
+cd "c:\Users\Administrator\Desktop\final thing"
+git commit -m "Initial commit: ZUNO AI-Powered Learning Platform
+
+- Full-stack application with React frontend and FastAPI backend
+- Frontend: React 18 + Vite + Tailwind CSS + Radix UI
+- Backend: FastAPI + Docker + PostgreSQL (Supabase)
+- Features: AI mentorship, learning roadmaps, YouTube integration
+- Deployment ready for Vercel (frontend) and Railway (backend)"
+
+# ============================================
+# STEP 3: Create GitHub Repository
+# ============================================
+# Go to: https://github.com/new
+# - Repository name: zuno-production
+# - Description: AI-Powered Learning Platform
+# - Visibility: Public or Private
+# - DO NOT initialize with README
+# - Click "Create repository"
+
+# ============================================
+# STEP 4: Add GitHub Remote
+# ============================================
+# Replace YOUR_USERNAME with your actual GitHub username
+
+git remote add origin https://github.com/YOUR_USERNAME/zuno-production.git
+git branch -M main
+
+# Verify remote
+git remote -v
+
+# ============================================
+# STEP 5: Push to GitHub
+# ============================================
+
+git push -u origin main
+
+# If prompted for password, use a Personal Access Token:
+# Create at: https://github.com/settings/tokens
+# Scopes needed: repo (full control)
+
+# ============================================
+# DONE! 🎉
+# ============================================
+# Your code is now on GitHub!
+# Next: Connect to Vercel and Railway for deployment
+# See GITHUB_SETUP.md for detailed instructions

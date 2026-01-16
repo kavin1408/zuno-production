@@ -8,6 +8,7 @@ class User(Base):
 
     id = Column(String, primary_key=True)  # Supabase UUID
     email = Column(String)
+    full_name = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     goals = relationship("Goal", back_populates="user")

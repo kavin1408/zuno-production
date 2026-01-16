@@ -20,16 +20,10 @@ app = FastAPI(title="Zuno Backend")
 
 import os
 
-# CORS Configuration
-# Read allowed origins from environment variable, default to local development
-ALLOWED_ORIGINS = os.getenv(
-    "ALLOWED_ORIGINS", 
-    "http://localhost:5173,http://127.0.0.1:5173"
-).split(",")
-
+# CORS Configuration for local and production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=["*"], # More permissive for quick recovery
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -38,6 +32,7 @@ app.add_middleware(
 # --- Pydantic Models ---
 class OnboardingRequest(BaseModel):
     subjects: List[str] # Multiple skills
+    full_name: Optional[str] = None
     exam_or_skill: str
     daily_time_minutes: int
     target_date: date
@@ -56,6 +51,7 @@ class ChatRequest(BaseModel):
 
 class UserProfileUpdate(BaseModel):
     email: Optional[str] = None
+    full_name: Optional[str] = None
     daily_time_minutes: Optional[int] = None
     learning_style: Optional[str] = None
     target_goal: Optional[str] = None
@@ -71,10 +67,14 @@ def onboarding(req: OnboardingRequest, user_id: str = Depends(get_current_user_i
     # Check if user exists, create if not
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        user = User(id=user_id, email="user@example.com") # Basic placeholder, real email can be extracted from JWT if needed
+        user = User(id=user_id, email="user@example.com", full_name=req.full_name) # Basic placeholder
         db.add(user)
         db.commit()
         db.refresh(user)
+    else:
+        if req.full_name:
+            user.full_name = req.full_name
+            db.add(user)
     
     # We'll replace existing goals for simplicity in MVP, or just add. 
     # Let's add new ones and avoid duplicates.
@@ -136,6 +136,32 @@ def onboarding(req: OnboardingRequest, user_id: str = Depends(get_current_user_i
         except Exception as e:
             print(f"ERROR: AI Roadmap generation failed: {e}")
             roadmap_data = None
+
+
+        if not roadmap_data:
+            print("WARNING: AI Roadmap generation failed or returned None. Using fallback roadmap.")
+            roadmap_data = {
+                "title": f"{subject} Fundamentals (Fallback)",
+                "phases": [
+                    {
+                        "name": "Getting Started",
+                        "modules": [
+                            {
+                                "name": "Introduction",
+                                "tasks": [
+                                    {
+                                        "title": f"Introduction to {subject}",
+                                        "description": f"Start your journey by exploring the core concepts of {subject}. Research the basics and set up your learning environment.",
+                                        "estimated_time": 30,
+                                        "output_deliverable": "A brief summary of what you learned and your setup.",
+                                        "resource_type": "research"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
 
         if roadmap_data:
             print(f"DEBUG: Roadmap generated successfully. Title: {roadmap_data.get('title')}")
@@ -561,6 +587,7 @@ def get_user_profile(user_id: str = Depends(get_current_user_id), db: Session = 
     return {
         "id": user.id,
         "email": user.email,
+        "full_name": user.full_name,
         "daily_time_minutes": goal.daily_time_minutes if goal else 60,
         "learning_style": goal.learning_style if goal else "mixed",
         "target_goal": goal.target_goal if goal else "General Mastery",
@@ -575,6 +602,8 @@ def update_user_settings(req: UserProfileUpdate, user_id: str = Depends(get_curr
         
     if req.email:
         user.email = req.email
+    if req.full_name:
+        user.full_name = req.full_name
         
     # Update preferences in Goal table if exists
     goal = db.query(Goal).filter(Goal.user_id == user_id).first()

@@ -15,6 +15,7 @@ export function Settings() {
     const [success, setSuccess] = useState(false);
 
     const [email, setEmail] = useState('');
+    const [fullName, setFullName] = useState('');
     const [hoursPerDay, setHoursPerDay] = useState('1');
     const [targetGoal, setTargetGoal] = useState('job-ready');
     const [learningStyle, setLearningStyle] = useState('mixed');
@@ -23,10 +24,11 @@ export function Settings() {
         async function fetchProfile() {
             try {
                 const profile = await api.get('/user/profile');
-                setEmail(profile.email);
-                setHoursPerDay(String(profile.daily_time_minutes / 60));
-                setTargetGoal(profile.target_goal);
-                setLearningStyle(profile.learning_style);
+                setEmail(profile.email || '');
+                setFullName(profile.full_name || '');
+                setHoursPerDay(String((profile.daily_time_minutes || 60) / 60));
+                setTargetGoal(profile.target_goal || 'job-ready');
+                setLearningStyle(profile.learning_style || 'mixed');
             } catch (err) {
                 console.error("Failed to fetch profile", err);
             } finally {
@@ -42,6 +44,7 @@ export function Settings() {
         try {
             await api.put('/user/settings', {
                 email,
+                full_name: fullName,
                 daily_time_minutes: parseFloat(hoursPerDay) * 60,
                 learning_style: learningStyle,
                 target_goal: targetGoal
@@ -75,6 +78,16 @@ export function Settings() {
                 </div>
 
                 <Card className="p-8 bg-[#1a1a1e] border-[#35353a] space-y-8">
+                    <div className="space-y-4">
+                        <Label className="text-gray-300">Display Name</Label>
+                        <Input
+                            value={fullName}
+                            onChange={(e) => setFullName(e.target.value)}
+                            className="bg-[#131316] border-[#35353a] text-white"
+                            placeholder="Your name"
+                        />
+                    </div>
+
                     <div className="space-y-4">
                         <Label className="text-gray-300">Email Address</Label>
                         <Input

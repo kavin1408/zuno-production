@@ -59,3 +59,4 @@ env/
 # Misc
 *.log
 .cache
+.env*.local

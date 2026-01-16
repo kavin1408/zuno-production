@@ -11,6 +11,7 @@ export function Onboarding() {
   const navigate = useNavigate();
   const location = useLocation();
   const [step, setStep] = useState(1);
+  const [fullName, setFullName] = useState('');
   const [skills, setSkills] = useState<string[]>(['']); // Array of skills
   const [hoursPerDay, setHoursPerDay] = useState('1');
   const [targetDate, setTargetDate] = useState('');
@@ -58,15 +59,16 @@ export function Onboarding() {
   };
 
   const handleContinue = async () => {
-    if (step < 3) {
+    if (step < 4) {
       setStep(step + 1);
-    } else if (step === 3) {
-      // Submit data to backend before moving to step 4
+    } else if (step === 4) {
+      // Submit data to backend before moving to step 5
       setLoading(true);
       try {
         const filteredSkills = skills.filter(s => s.trim() !== '');
         const result = await api.post('/onboarding', {
           subjects: filteredSkills,
+          full_name: fullName,
           exam_or_skill: "General Mastery", // Defaulting for simple UI
           daily_time_minutes: parseFloat(hoursPerDay) * 60,
           target_date: targetDate || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default 90 days
@@ -74,7 +76,7 @@ export function Onboarding() {
           learning_style: learningStyle
         });
         setOnboardingResult(result);
-        setStep(4);
+        setStep(5);
       } catch (error) {
         console.error("Onboarding failed", error);
         alert("Failed to save goals. Please try again.");
@@ -99,7 +101,7 @@ export function Onboarding() {
         {/* Progress Indicator */}
         <div className="mb-12">
           <div className="flex items-center justify-center gap-2 mb-3">
-            {[1, 2, 3, 4].map((i) => (
+            {[1, 2, 3, 4, 5].map((i) => (
               <div
                 key={i}
                 className={`h-1.5 rounded-full transition-all ${i === step ? 'w-12 bg-indigo-600' : i < step ? 'w-8 bg-indigo-600/40' : 'w-8 bg-gray-700'
@@ -107,12 +109,39 @@ export function Onboarding() {
               />
             ))}
           </div>
-          <p className="text-center text-sm text-gray-500">Step {step} of 4</p>
+          <p className="text-center text-sm text-gray-500">Step {step} of 5</p>
         </div>
 
         {/* Step Content */}
         <div className="bg-[#25252a] rounded-2xl p-10 border border-[#35353a]">
           {step === 1 && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <div className="w-20 h-20 bg-indigo-600/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <span className="text-3xl text-indigo-400 font-bold">Z</span>
+                </div>
+                <h2 className="text-3xl font-medium text-white mb-3">
+                  Hi! I'm Zuno.
+                </h2>
+                <p className="text-gray-400">
+                  I'll be your personal AI mentor. What should I call you?
+                </p>
+              </div>
+
+              <div className="space-y-4 pt-4">
+                <Label className="text-gray-300">Your Full Name</Label>
+                <Input
+                  placeholder="e.g., Alex Johnson"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="bg-[#1a1a1e] border-[#35353a] text-white placeholder:text-gray-500 focus:border-indigo-500 focus:ring-indigo-500/20 h-14 text-xl text-center"
+                  autoFocus
+                />
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
             <div className="space-y-6">
               <div>
                 <h2 className="text-3xl font-medium text-white mb-3">
@@ -155,7 +184,7 @@ export function Onboarding() {
             </div>
           )}
 
-          {step === 2 && (
+          {step === 3 && (
             <div className="space-y-6">
               <div>
                 <h2 className="text-3xl font-medium text-white mb-3">
@@ -209,7 +238,7 @@ export function Onboarding() {
             </div>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <div className="space-y-6">
               <div>
                 <h2 className="text-3xl font-medium text-white mb-3">
@@ -252,11 +281,11 @@ export function Onboarding() {
             </div>
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <div className="space-y-6">
               <div>
                 <h2 className="text-3xl font-medium text-white mb-3">
-                  You're all set!
+                  You're all set, {fullName.split(' ')[0]}!
                 </h2>
                 <p className="text-gray-400 mb-6">
                   Zuno has created your personalized learning paths.
@@ -309,7 +338,7 @@ export function Onboarding() {
 
             <Button
               onClick={handleContinue}
-              disabled={(step === 1 && skills.filter(s => s.trim() !== '').length === 0) || loading}
+              disabled={(step === 1 && !fullName.trim()) || (step === 2 && skills.filter(s => s.trim() !== '').length === 0) || loading}
               className="bg-indigo-600 hover:bg-indigo-700 text-white px-8"
             >
               {loading ? (
@@ -319,7 +348,7 @@ export function Onboarding() {
                 </>
               ) : (
                 <>
-                  {step === 4 ? 'Start Learning' : 'Continue'}
+                  {step === 5 ? 'Start Learning' : 'Continue'}
                   <ChevronRight className="w-4 h-4 ml-1" />
                 </>
               )}
