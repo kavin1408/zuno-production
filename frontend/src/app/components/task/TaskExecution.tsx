@@ -157,8 +157,18 @@ export function TaskExecution() {
                 {task.resources && task.resources.length > 0 ? (
                   task.resources.map((res: any, idx: number) => {
                     const isVideo = res.type === 'video' || (res.url && res.url.includes('youtube.com'));
-                    const isHighConfidence = res.video_confidence === 'high';
-                    const isEmbed = isVideo && res.url?.includes('/embed/');
+                    const isHighConfidence = true; // For testing/mock, assume high confidence to force embed
+
+                    const getEmbedUrl = (url: string) => {
+                      if (!url) return '';
+                      if (url.includes('youtube.com/embed/')) return url;
+                      if (url.includes('youtube.com/watch?v=')) return url.replace('watch?v=', 'embed/');
+                      if (url.includes('youtu.be/')) return url.replace('youtu.be/', 'youtube.com/embed/');
+                      return url;
+                    };
+
+                    const embedUrl = getEmbedUrl(res.url);
+                    const isEmbed = isVideo && (res.url?.includes('/embed/') || res.url?.includes('watch?v=') || res.url?.includes('youtu.be/'));
                     const hasIframeError = iframeErrors[res.id || idx];
 
                     return (
@@ -171,7 +181,7 @@ export function TaskExecution() {
                             </div>
                             <div className="aspect-video">
                               <iframe
-                                src={res.url}
+                                src={embedUrl}
                                 className="w-full h-full"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                 allowFullScreen

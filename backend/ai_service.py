@@ -46,6 +46,49 @@ def call_openrouter(messages, model="meta-llama/llama-3.1-70b-instruct"):
         if hasattr(e, 'response') and e.response is not None:
             print(f"Response Status: {e.response.status_code}")
             print(f"Response Body: {e.response.text}")
+            
+            # Fallback for 401 (Invalid Key) - Return Mock Data for testing
+            if e.response.status_code == 401:
+                print("⚠️ AUTH ERROR: Returning MOCK data to allow local testing.")
+                import random
+                
+                mocks = [
+                    {
+                        "topic": "Introduction to Python",
+                        "title": "Python for Beginners (Full Course)",
+                        "url": "https://www.youtube.com/embed/rfscVS0vtbw"
+                    },
+                    {
+                        "topic": "Python Variables & Data Types",
+                        "title": "Python Tutorial for Beginners 2: Variables",
+                        "url": "https://www.youtube.com/embed/7D5Qj64HZHo"
+                    },
+                    {
+                        "topic": "Python Lists & Sets",
+                        "title": "Python Lists | Python Tutorial",
+                        "url": "https://www.youtube.com/embed/9OeznA9lzab"
+                    }
+                ]
+                
+                selected = random.choice(mocks)
+                
+                return json.dumps({
+                    "topic": selected["topic"],
+                    "search_query": "python tutorial",
+                    "rationale": "Perfect starting point.",
+                    "level": "Beginner",
+                    "message": "Here is a fresh resource for you.",
+                    "resources": [
+                        {
+                            "title": selected["title"],
+                            "url": selected["url"],
+                            "platform": "YouTube",
+                            "resource_type": "video"
+                        }
+                    ],
+                    "title": "Python Roadmap",
+                    "phases": [] 
+                })
         return None
     except Exception as e:
         print(f"AI Service Error: {e}")

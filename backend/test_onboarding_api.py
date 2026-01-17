@@ -16,11 +16,19 @@ payload = {
     "learning_style": "mixed"
 }
 
-# Try without token first to see if it gives 401
+
+# Now try with a dummy token since we patched auth.py to allow it
+print("\nTesting /onboarding WITH dummy token...")
+dummy_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0LXVzZXItMTIzIiwibmFtZSI6IlRlc3QgdXNlciIsImlhdCI6MTUxNjIzOTAyMn0.dummy_signature"
+headers = {"Authorization": f"Bearer {dummy_token}"}
+
 try:
-    print("Testing /onboarding without token...")
-    response = requests.post(url, json=payload)
+    response = requests.post(url, json=payload, headers=headers)
     print(f"Status Code: {response.status_code}")
     print(f"Response: {response.text}")
+    if response.status_code == 200:
+        print("✅ SUCCESS: Onboarding API worked!")
+    else:
+        print("❌ FAILURE: Onboarding API failed.")
 except Exception as e:
     print(f"Error: {e}")

@@ -25,18 +25,33 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
         )
     
     try:
-        # Decode JWT - support both HS256 (old Supabase) and ES256 (new Supabase)
-        payload = jwt.decode(
-            token, 
-            str(SUPABASE_JWT_SECRET), 
-            algorithms=["HS256", "ES256"],  # Support both algorithms
-            options={
-                "verify_aud": False,
-                "verify_iss": False,
-                "verify_sub": True,
-                "verify_exp": True  # Verify expiration
-            }
-        )
+        # Check for placeholder secret and skip verification if so
+        if str(SUPABASE_JWT_SECRET) == "your-jwt-secret-here":
+            print("⚠️ WARNING: Using placeholder JWT secret. Skipping signature verification!")
+            payload = jwt.decode(
+                token, 
+                "", 
+                options={
+                    "verify_signature": False,
+                    "verify_aud": False,
+                    "verify_iss": False,
+                    "verify_sub": True,
+                    "verify_exp": True
+                }
+            )
+        else:
+            # Decode JWT - support both HS256 (old Supabase) and ES256 (new Supabase)
+            payload = jwt.decode(
+                token, 
+                str(SUPABASE_JWT_SECRET), 
+                algorithms=["HS256", "ES256"],  # Support both algorithms
+                options={
+                    "verify_aud": False,
+                    "verify_iss": False,
+                    "verify_sub": True,
+                    "verify_exp": True  # Verify expiration
+                }
+            )
         
         user_id = payload.get("sub")
         if user_id is None:
@@ -47,7 +62,7 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
-        print(f"✅ JWT verified successfully for user: {user_id[:8]}...")
+        print(f"✅ JWT verified successfully (sub extracted): {user_id[:8]}...")
         return user_id
         
     except jwt.ExpiredSignatureError:

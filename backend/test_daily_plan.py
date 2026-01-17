@@ -8,7 +8,7 @@ def test_daily_plan_generation():
     recent_topics = None
     
     print(f"Generating daily plan for {subject}...")
-    ai_response_str = generate_daily_task_content(subject, exam, level, recent_topics)
+    ai_response_str = generate_daily_task_content(subject, exam, level, recent_topics, 60)
     
     if ai_response_str:
         print("AI Response Received:")
