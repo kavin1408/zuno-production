@@ -10,11 +10,8 @@ security = HTTPBearer()
 
 SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
 
-def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    """
-    Verifies the JWT token from Supabase and returns the user ID (sub).
-    Supports both HS256 and ES256 algorithms.
-    """
+def get_current_user_claims(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+    """Verifies JWT and returns full payload claims"""
     token = credentials.credentials
     
     if not SUPABASE_JWT_SECRET:
@@ -52,19 +49,8 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
                     "verify_exp": True  # Verify expiration
                 }
             )
-        
-        user_id = payload.get("sub")
-        if user_id is None:
-            print("❌ JWT Error: No sub in payload")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token missing user information (sub)",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        
-        print(f"✅ JWT verified successfully (sub extracted): {user_id[:8]}...")
-        return user_id
-        
+        return payload
+
     except jwt.ExpiredSignatureError:
         print("❌ JWT Error: Token expired")
         raise HTTPException(
@@ -77,8 +63,6 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
         error_msg = str(e)
         print(f"❌ JWT Verification Error: {error_type}: {error_msg}")
         print(f"   Token (first 20 chars): {token[:20]}...")
-        print(f"   Secret (first 10 chars): {str(SUPABASE_JWT_SECRET)[:10]}...")
-        
         # Try to decode header to see the algorithm
         try:
             header = json.loads(jwt.get_unverified_header(token))
@@ -91,4 +75,16 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
             detail=f"Session expired or invalid token",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+def get_current_user_id(claims: dict = Depends(get_current_user_claims)) -> str:
+    """Returns the user ID (sub) from valid claims"""
+    user_id = claims.get("sub")
+    if user_id is None:
+        print("❌ JWT Error: No sub in payload")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token missing user information (sub)",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user_id
 

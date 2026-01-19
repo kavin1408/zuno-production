@@ -18,7 +18,7 @@ def test_onboarding():
     try:
         # We need to mock get_current_user_id since it's a dependency
         # But here we just call the function directly
-        result = onboarding(req, user_id=user_id, db=db)
+        result = onboarding(req, claims={"sub": user_id, "email": "test@example.com"}, db=db)
         print("SUCCESS:", result)
     except Exception as e:
         import traceback

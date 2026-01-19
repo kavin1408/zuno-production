@@ -4,7 +4,7 @@ load_dotenv()
 from sqlalchemy.orm import Session
 from database import engine, get_db, Base
 from models import User, Goal, DailyTask, Submission, Roadmap, RoadmapTask, TaskResource
-from auth import get_current_user_id
+from auth import get_current_user_id, get_current_user_claims
 import ai_service
 import json
 from pydantic import BaseModel
@@ -23,7 +23,7 @@ import os
 # CORS Configuration for local and production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # More permissive for quick recovery
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "https://zuno-production.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -63,11 +63,17 @@ def health_check():
     return {"status": "ok", "message": "Zuno Backend is running"}
 
 @app.post("/onboarding")
-def onboarding(req: OnboardingRequest, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+def onboarding(req: OnboardingRequest, claims: dict = Depends(get_current_user_claims), db: Session = Depends(get_db)):
+    user_id = claims.get("sub")
+    email = claims.get("email", "")
+    
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid token: missing sub")
+
     # Check if user exists, create if not
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        user = User(id=user_id, email="user@example.com", full_name=req.full_name) # Basic placeholder
+        user = User(id=user_id, email=email, full_name=req.full_name)
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -264,14 +270,20 @@ def complete_roadmap_task(task_id: int, user_id: str = Depends(get_current_user_
 
 @app.get("/daily-plan")
 def get_daily_plan(user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    print(f"DEBUG: get_daily_plan called for user {user_id}")
     today = date.today()
     results = []
     
-    # Check for active roadmap tasks first
-    active_roadmap_task = db.query(RoadmapTask).join(Roadmap).filter(
-        Roadmap.user_id == user_id,
-        RoadmapTask.status == "active"
-    ).first()
+    try:
+        # Check for active roadmap tasks first
+        active_roadmap_task = db.query(RoadmapTask).join(Roadmap).filter(
+            Roadmap.user_id == user_id,
+            RoadmapTask.status == "active"
+        ).first()
+        print(f"DEBUG: active_roadmap_task: {active_roadmap_task}")
+    except Exception as e:
+        print(f"ERROR in get_daily_plan query: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
     if active_roadmap_task:
         # Check if already converted to daily task for today
@@ -283,6 +295,10 @@ def get_daily_plan(user_id: str = Depends(get_current_user_id), db: Session = De
 
         if not task:
             # Generate enriched content via AI
+            if not active_roadmap_task.roadmap or not active_roadmap_task.roadmap.goal:
+                print(f"ERROR: Roadmap or Goal missing for task {active_roadmap_task.id}")
+                return [] # Or handle gracefully
+
             subject = active_roadmap_task.roadmap.goal.subject
             exam = active_roadmap_task.roadmap.goal.exam_or_skill
             level = active_roadmap_task.roadmap.goal.detected_level or "Beginner"
@@ -575,11 +591,17 @@ def chat(req: ChatRequest, user_id: str = Depends(get_current_user_id), db: Sess
 def get_user_profile(user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        # Create user if doesn't exist (e.g., first time login directly to dashboard)
-        user = User(id=user_id, email="user@example.com")
-        db.add(user)
-        db.commit()
-        db.refresh(user)
+        # Do NOT create user automatically. 
+        # User is created only during onboarding when they set goals.
+        return {
+            "id": user_id,
+            "email": "",
+            "full_name": "",
+            "daily_time_minutes": 60,
+            "learning_style": "mixed",
+            "target_goal": "General Mastery",
+            "has_onboarded": False
+        }
     
     # Get user's primary goal to extract preferences
     goal = db.query(Goal).filter(Goal.user_id == user_id).first()
@@ -617,6 +639,7 @@ def update_user_settings(req: UserProfileUpdate, user_id: str = Depends(get_curr
             
     db.commit()
     return {"message": "Settings updated successfully"}
+
 @app.post("/task/{task_id}/regenerate-resources")
 def regenerate_task_resources(task_id: int, user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)):
     task = db.query(DailyTask).filter(DailyTask.id == task_id, DailyTask.user_id == user_id).first()

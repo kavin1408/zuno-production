@@ -1,24 +1,25 @@
-from ai_service import generate_daily_task_content
-import json
+from main import get_daily_plan
+from database import SessionLocal
+import traceback
 
-def test_daily_plan_generation():
-    subject = "React"
-    exam = "Web Development"
-    level = "Beginner"
-    recent_topics = None
+def test_daily_plan():
+    db = SessionLocal()
+    # Use the same user ID as test_onboarding.py
+    user_id = "test_user_123"
     
-    print(f"Generating daily plan for {subject}...")
-    ai_response_str = generate_daily_task_content(subject, exam, level, recent_topics, 60)
-    
-    if ai_response_str:
-        print("AI Response Received:")
-        try:
-            data = json.loads(ai_response_str)
-            print(json.dumps(data, indent=2))
-        except:
-            print(ai_response_str)
-    else:
-        print("Failed to get AI response")
+    print(f"Testing get_daily_plan for user: {user_id}")
+    try:
+        # Mock dependency injection by passing db explicitly
+        # user_id is passed as str directly because Depends is handled by FastAPI
+        results = get_daily_plan(user_id=user_id, db=db)
+        print("SUCCESS! Results found:", len(results))
+        for task in results:
+            print(f"- Task: {task.get('topic')}")
+    except Exception as e:
+        print("FAILED!")
+        traceback.print_exc()
+    finally:
+        db.close()
 
 if __name__ == "__main__":
-    test_daily_plan_generation()
+    test_daily_plan()
