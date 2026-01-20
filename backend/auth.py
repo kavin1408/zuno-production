@@ -5,10 +5,43 @@ from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 import json
+import requests
+import time
 
 security = HTTPBearer()
 
 SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+
+# Cache keys to avoid fetching on every request
+_jwks_cache = {}
+_jwks_timestamp = 0
+
+def get_jwks():
+    global _jwks_cache, _jwks_timestamp
+    
+    # Refresh cache every hour
+    if _jwks_cache and (time.time() - _jwks_timestamp < 3600):
+        return _jwks_cache
+        
+    if not SUPABASE_URL:
+        print("⚠️ SUPABASE_URL not set, cannot fetch JWKs")
+        return None
+        
+    try:
+        url = f"{SUPABASE_URL}/auth/v1/.well-known/jwks.json"
+        print(f"Fetching JWKs from {url}")
+        resp = requests.get(url, timeout=5)
+        if resp.status_code == 200:
+            _jwks_cache = resp.json()
+            _jwks_timestamp = time.time()
+            return _jwks_cache
+        else:
+            print(f"Failed to fetch JWKs: {resp.status_code}")
+    except Exception as e:
+        print(f"Error fetching JWKs: {e}")
+        
+    return None
 
 def get_current_user_claims(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
     """Verifies JWT and returns full payload claims"""
@@ -22,14 +55,35 @@ def get_current_user_claims(credentials: HTTPAuthorizationCredentials = Depends(
         )
     
     try:
-        # Check for placeholder secret and skip verification if so
-        if str(SUPABASE_JWT_SECRET) == "your-jwt-secret-here":
-            print("⚠️ WARNING: Using placeholder JWT secret. Skipping signature verification!")
-            payload = jwt.decode(
+        # 1. Peeking at the header to determine algorithm
+        try:
+            unverified_header = jwt.get_unverified_header(token)
+            alg = unverified_header.get('alg')
+        except:
+             # If we can't even read the header, just let the standard decode fail
+             alg = "HS256"
+
+        key = str(SUPABASE_JWT_SECRET)
+        algorithms = ["HS256"]
+        
+        # 2. If ES256 (new Supabase default), fetch JWKs
+        if alg == 'ES256':
+            jwks = get_jwks()
+            if jwks:
+                key = jwks
+                algorithms = ["ES256"]
+            else:
+                 print("⚠️ Could not fetch JWKS for ES256 token, trying secret as fallback (will likely fail)")
+
+        # 3. Decode
+        if alg == 'ES256':
+             # For ES256/JWK, we often pass the whole JWKS dict as 'key' in python-jose
+             # It acts as a key set.
+             payload = jwt.decode(
                 token, 
-                "", 
+                key, 
+                algorithms=["ES256"], 
                 options={
-                    "verify_signature": False,
                     "verify_aud": False,
                     "verify_iss": False,
                     "verify_sub": True,
@@ -37,18 +91,19 @@ def get_current_user_claims(credentials: HTTPAuthorizationCredentials = Depends(
                 }
             )
         else:
-            # Decode JWT - support both HS256 (old Supabase) and ES256 (new Supabase)
+            # HS256 Fallback
             payload = jwt.decode(
                 token, 
                 str(SUPABASE_JWT_SECRET), 
-                algorithms=["HS256", "ES256"],  # Support both algorithms
+                algorithms=["HS256"],  
                 options={
                     "verify_aud": False,
                     "verify_iss": False,
                     "verify_sub": True,
-                    "verify_exp": True  # Verify expiration
+                    "verify_exp": True
                 }
             )
+            
         return payload
 
     except jwt.ExpiredSignatureError:
@@ -63,12 +118,6 @@ def get_current_user_claims(credentials: HTTPAuthorizationCredentials = Depends(
         error_msg = str(e)
         print(f"❌ JWT Verification Error: {error_type}: {error_msg}")
         print(f"   Token (first 20 chars): {token[:20]}...")
-        # Try to decode header to see the algorithm
-        try:
-            header = json.loads(jwt.get_unverified_header(token))
-            print(f"   Token algorithm: {header.get('alg', 'unknown')}")
-        except:
-            pass
             
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
