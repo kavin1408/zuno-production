@@ -78,6 +78,14 @@ class UserProfileUpdate(BaseModel):
 def health_check():
     return {"status": "ok", "message": "Zuno Backend is running"}
 
+@app.get("/debug-cors")
+def debug_cors():
+    return {
+        "allowed_origins": origins,
+        "env_origins": os.getenv("ALLOWED_ORIGINS"),
+        "ver": "1.0.1"
+    }
+
 @app.post("/onboarding")
 def onboarding(req: OnboardingRequest, claims: dict = Depends(get_current_user_claims), db: Session = Depends(get_db)):
     user_id = claims.get("sub")
