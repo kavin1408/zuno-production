@@ -6,8 +6,7 @@ WORKDIR /app
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PORT=8000
+    PYTHONUNBUFFERED=1
 
 # Install system dependencies (even if not strictly needed for standard wheels, safety first)
 RUN apt-get update && apt-get install -y \
