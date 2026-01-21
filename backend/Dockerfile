@@ -26,7 +26,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY . .
 
 # Expose the port (Railway sends PORT env var, but we document it)
-EXPOSE 8000
+# Expose is handled by Railway internally
 
 # Command to run the application using Uvicorn
 # We explicitly bind to 0.0.0.0 and use the PORT env var
