@@ -21,7 +21,14 @@ app = FastAPI(title="Zuno Backend")
 import os
 
 # CORS Configuration
-origins = ["http://localhost:5173", "http://localhost:3000", "https://zuno-v2.vercel.app"]
+# Explicitly allowing both variants to prevent any matching edge cases
+origins = [
+    "http://localhost:5173", 
+    "http://localhost:3000", 
+    "https://zuno-v2.vercel.app", 
+    "https://zuno-v2.vercel.app/",
+    "https://zuno-production.vercel.app"
+]
 
 # Add origins from environment variable
 env_origins = os.getenv("ALLOWED_ORIGINS", "")
@@ -30,11 +37,12 @@ if env_origins:
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_origin_regex=r"https://.*\.vercel\.app", # Allow all Vercel subdomains (previews etc)
+    allow_origins=origins, 
+    # Regex to support all deployment previews and subdomains
+    allow_origin_regex=r"https://.*\.vercel\.app", 
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
 )
 
 # --- Pydantic Models ---
