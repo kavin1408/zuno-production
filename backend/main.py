@@ -741,7 +741,11 @@ if __name__ == "__main__":
     import os
     
     # Get port from environment variable (Railway compatibility)
-    port = int(os.getenv("PORT", 8000))
+    # Get port from environment variable (Railway compatibility)
+    try:
+        port = int(os.getenv("PORT", 8000))
+    except (ValueError, TypeError):
+        port = 8000
     
     # Run server on 0.0.0.0 for container compatibility
     uvicorn.run(
