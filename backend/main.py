@@ -20,10 +20,18 @@ app = FastAPI(title="Zuno Backend")
 
 import os
 
-# CORS Configuration for local and production
+# CORS Configuration
+origins = ["http://localhost:5173", "http://localhost:3000", "https://zuno-v2.vercel.app"]
+
+# Add origins from environment variable
+env_origins = os.getenv("ALLOWED_ORIGINS", "")
+if env_origins:
+    origins.extend([o.strip() for o in env_origins.split(",") if o.strip()])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000", "https://zuno-production.vercel.app", "https://zuno-v2.vercel.app"],
+    allow_origins=origins,
+    allow_origin_regex=r"https://.*\.vercel\.app", # Allow all Vercel subdomains (previews etc)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
