@@ -27,7 +27,7 @@ origins = [
     "http://localhost:3000", 
     "https://zuno-v2.vercel.app", 
     "https://zuno-v2.vercel.app/",
-    "https://zuno-production.vercel.app"
+    
 ]
 
 # Add origins from environment variable
