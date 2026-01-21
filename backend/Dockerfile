@@ -31,4 +31,4 @@ EXPOSE 8000
 
 # Command to run the application using Uvicorn
 # We explicitly bind to 0.0.0.0 and use the PORT env var
-CMD sh -c "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"
+CMD ["python", "main.py"]
