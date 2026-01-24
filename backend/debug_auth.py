@@ -87,7 +87,7 @@ def debug_auth():
 
     # ... (rest of backend test stays similar) ...
     # 2. Test Backend
-    backend_url = "https://zuno-production-production.up.railway.app"
+    backend_url = "http://127.0.0.1:8000"
     print(f"\n🔄 Testing Backend: {backend_url}/daily-plan")
     
     backend_headers = {

@@ -1,16 +1,28 @@
-✅ Found Supabase URL: https://frmzwunvythvziqyfwxy.supabase.co
+✅ Found Supabase URL: https://rvpevrrmwqqbzgktscfc.supabase.co
 ✅ Found Anon Key: eyJhbGciOi...
 
 🔄 Attempting login for test@example.com...
-⚠️ Login failed: {"message":"Invalid API key","hint":"Double check your Supabase `anon` or `service_role` API key."}
+⚠️ Login failed: {"code":400,"error_code":"invalid_credentials","msg":"Invalid login credentials"}
 
 🔄 Attempting login for user@example.com...
-⚠️ Login failed: {"message":"Invalid API key","hint":"Double check your Supabase `anon` or `service_role` API key."}
+⚠️ Login failed: {"code":400,"error_code":"invalid_credentials","msg":"Invalid login credentials"}
 
 🔄 Attempting login for test@test.com...
-⚠️ Login failed: {"message":"Invalid API key","hint":"Double check your Supabase `anon` or `service_role` API key."}
+⚠️ Login failed: {"code":400,"error_code":"invalid_credentials","msg":"Invalid login credentials"}
 
-🔄 Attempting signup for debug_6499@example.com...
-❌ Signup failed: {"message":"Invalid API key","hint":"Double check your Supabase `anon` or `service_role` API key."}
+🔄 Attempting signup for debug_6000@example.com...
+✅ Signup request sent! Checking response...
+✅ Got token from signup!
 
-❌ Could not get an access token. Cannot test backend.
+🔄 Testing Backend: http://127.0.0.1:8000/daily-plan
+
+📊 Backend Response Status: 200
+📄 Body: []
+
+✅ SUCCESS: Backend accepted the token!
+
+🔍 Token Details:
+   Algorithm: ES256
+   Issuer: https://rvpevrrmwqqbzgktscfc.supabase.co/auth/v1
+   Expiry: 1768919562
+   Subject: ae0b901a-8881-4b4a-a2a0-6eaeb4ada320
