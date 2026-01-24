@@ -27,13 +27,15 @@ origins = [
     "http://localhost:3000", 
     "https://zuno-v2.vercel.app", 
     "https://zuno-v2.vercel.app/",
-    
+    "https://zuno-production.vercel.app",
 ]
 
 # Add origins from environment variable
 env_origins = os.getenv("ALLOWED_ORIGINS", "")
 if env_origins:
     origins.extend([o.strip() for o in env_origins.split(",") if o.strip()])
+
+print(f"DEBUG: CORS Allowed Origins: {origins}")
 
 app.add_middleware(
     CORSMiddleware,
