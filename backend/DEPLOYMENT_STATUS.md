@@ -2,19 +2,23 @@
 
 ## Current Status
 
-The backend is **DEPLOYING**.
+The backend is **RE-DEPLOYING** with fixes.
 
-Triggered at: **2026-01-24** via Railway CLI.
+Updates applied at: **2026-01-24**:
 
-✅ **Startup Verification Successful**
-- `python main.py` runs without errors
-- Database connection (Supabase) works
-- Application starts on port 8000
+✅ **Fixed Database Connection**
+- The Railway `DATABASE_URL` was incorrect (different region/user than local).
+- **Action:** Updated Railway variables to match local working .env.
+- **Verification:** `railway run python main.py` now connects successfully!
 
-✅ **Deployment Triggered**
-- Project linked: `hospitable-beauty`
-- Service: `zuno-production`
-- Command: `railway up` executed successfully
+✅ **Fixed Start Command (PORT Error)**
+- The default buildpack was failing with `PORT variable must be integer`.
+- **Action:** Added `Dockerfile` to explicitly define build and start command (`python main.py`).
+- **Action:** Pushed `Dockerfile` to git.
+
+✅ **Status**
+- A new deployment is triggered.
+- Once active, the 404 error will resolve.
 
 ## Next Steps for User
 
