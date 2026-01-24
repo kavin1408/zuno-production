@@ -743,9 +743,14 @@ if __name__ == "__main__":
     # Get port from environment variable (Railway compatibility)
     # Get port from environment variable (Railway compatibility)
     try:
-        port = int(os.getenv("PORT", 8000))
+        env_port = os.getenv("PORT")
+        print(f"DEBUG: Starting up... Environment PORT variable is: {env_port}")
+        port = int(env_port or 8000)
     except (ValueError, TypeError):
+        print(f"DEBUG: Failed to parse PORT '{os.getenv('PORT')}'. Defaulting to 8000.")
         port = 8000
+    
+    print(f"DEBUG: Uvicorn launching on 0.0.0.0:{port}")
     
     # Run server on 0.0.0.0 for container compatibility
     uvicorn.run(
