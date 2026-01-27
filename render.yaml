@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: zuno-backend
+    runtime: python
+    # Run from root, but enter backend dir for context
+    buildCommand: cd backend && pip install -r requirements.txt
+    # Use python main.py to reliably read PORT env var via os.getenv
+    startCommand: cd backend && python main.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.5
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false

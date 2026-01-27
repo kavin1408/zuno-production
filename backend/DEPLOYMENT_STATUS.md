@@ -2,23 +2,22 @@
 
 ## Current Status
 
-The backend is **RE-DEPLOYING** with fixes.
+The backend is **DEPLOYED AND LIVE** 🚀
 
-Updates applied at: **2026-01-24**:
+Verified workings at: **2026-01-24**
 
-✅ **Fixed Database Connection**
-- The Railway `DATABASE_URL` was incorrect (different region/user than local).
-- **Action:** Updated Railway variables to match local working .env.
-- **Verification:** `railway run python main.py` now connects successfully!
+✅ **Status: OPERATIONAL**
+-   **URL:** `https://zuno-production-production.up.railway.app`
+-   **Method:** Nixpacks with `python main.py` start command
+-   **CORS:** Configured for `https://zuno-v2.vercel.app`
+-   **Database:** Connected to Supabase
 
-✅ **Fixed Start Command (PORT Error)**
-- The default buildpack was failing with `PORT variable must be integer`.
-- **Action:** Added `Dockerfile` to explicitly define build and start command (`python main.py`).
-- **Action:** Pushed `Dockerfile` to git.
+✅ **Fixes Applied**
+1.  **Port Binding:** Reverted to `python main.py` to correctly handle Railway's dynamic port assignment via Python's `os.getenv()`.
+2.  **CORS:** Explicitly allowed Vercel frontend in `main.py` middleware.
+3.  **Environment:** Synced all Railway variables (Supabase URL, Keys, etc.) with local `.env`.
 
-✅ **Status**
-- A new deployment is triggered.
-- Once active, the 404 error will resolve.
+**No further actions needed.**
 
 ## Next Steps for User
 

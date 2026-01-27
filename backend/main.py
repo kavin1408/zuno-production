@@ -16,32 +16,39 @@ import re
 # Create DB Tables
 Base.metadata.create_all(bind=engine)
 
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+# Rate Limiter
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="Zuno Backend")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 import os
 
 # CORS Configuration
-# Explicitly allowing both variants to prevent any matching edge cases
+# STRICTER SECURITY: Only allow specific production and local domains
 origins = [
-    "http://localhost:5173", 
-    "http://localhost:3000", 
-    "https://zuno-v2.vercel.app", 
-    "https://zuno-v2.vercel.app/",
-    "https://zuno-production.vercel.app",
+    "https://zuno-v2.vercel.app",  # Production Vercel App
+    "http://localhost:5173",       # Local Frontend
+    "http://localhost:3000",       # Local Alternative
 ]
 
-# Add origins from environment variable
+# Optional: Load more from env but VALIDATE them (don't just accept everything)
 env_origins = os.getenv("ALLOWED_ORIGINS", "")
 if env_origins:
-    origins.extend([o.strip() for o in env_origins.split(",") if o.strip()])
+    for o in env_origins.split(","):
+        o = o.strip()
+        if o and (o.startswith("https://") or o.startswith("http://localhost")):
+             origins.append(o)
 
 print(f"DEBUG: CORS Allowed Origins: {origins}")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins, 
-    # Regex to support all deployment previews and subdomains
-    allow_origin_regex=r"https://.*\.vercel\.app", 
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
